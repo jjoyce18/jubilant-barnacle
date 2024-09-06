@@ -1,0 +1,2 @@
+# jubilant-barnacle
+NixOS Config
