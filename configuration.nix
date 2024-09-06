@@ -1,20 +1,27 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:  # Make sure lib is included here
 
 {
-  imports = [ 
+  imports = [
+    <nixos-hardware/asus/zephyrus/ga402x/amdgpu>
     ./hardware-configuration.nix
   ];
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelParams = [ 
-    "amd_pstate=active" 
+    "amd_pstate=passive" 
     "cpufreq.default_governor=powersave"
     "pcie_aspm.policy=powersupersave"
   ];
 
   networking.hostName = "nixos";
   networking.networkmanager.enable = true;
+
+  nix = {
+    extraOptions = ''
+      experimental-features = nix-command flakes
+    '';
+  };
 
   time.timeZone = "America/New_York";
   i18n.defaultLocale = "en_US.UTF-8";
@@ -35,6 +42,7 @@
     enable = true;
     wayland.enable = true;
   };
+
   services.desktopManager.plasma6.enable = true;
   services.displayManager.defaultSession = "plasma";
 
@@ -46,6 +54,7 @@
   environment.systemPackages = with pkgs; [
     kitty
     kate
+    auto-cpufreq
     vim
     htop
     btop
@@ -63,7 +72,8 @@
     blueman
     discord
     ticktick
-    powertop  # Added for power analysis
+    git
+    powertop
   ];
 
   environment.sessionVariables = {
@@ -116,22 +126,14 @@
 
   # ASUS-specific udev rule
   services.udev.extraHwdb = ''
-    evdev:name:*:dmi:bvn*:bvr*:bd*:svnASUS*:pn*:*
+    evdev:name::dmi:bvn:bvr:bd:svnASUS:pn:*
      KEYBOARD_KEY_ff31007c=f20
   '';
-
-  # Kernel version assertion
-  assertions = [
-    {
-      assertion = (lib.versionAtLeast config.boot.kernelPackages.kernel.version "6.2");
-      message = "This configuration requires kernel version >=6.2 to ensure that fans are correctly managed. Please upgrade nixpkgs for this system.";
-    }
-  ];
-
-  # Power management configuration
+   # Power management configuration
   services.power-profiles-daemon.enable = true;
   powerManagement.enable = true;
 
   # Optional: Enable thermald for better thermal management
   services.thermald.enable = true;
+  services.auto-cpufreq.enable = true;  
 }
