@@ -74,6 +74,9 @@
     ticktick
     git
     powertop
+    xboxdrv
+    linuxConsoleTools
+    evtest
   ];
 
   environment.sessionVariables = {
@@ -129,11 +132,32 @@
     evdev:name::dmi:bvn:bvr:bd:svnASUS:pn:*
      KEYBOARD_KEY_ff31007c=f20
   '';
-   # Power management configuration
+
+  # Power management configuration
   services.power-profiles-daemon.enable = true;
   powerManagement.enable = true;
 
   # Optional: Enable thermald for better thermal management
   services.thermald.enable = true;
-  services.auto-cpufreq.enable = true;  
+  services.auto-cpufreq.enable = true;
+
+  # New sections for Xbox controller support
+  services.udev.extraRules = ''
+    # Xbox 360 wired controller
+    SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="028e", MODE="0666"
+    # Xbox 360 wireless controller
+    SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="0719", MODE="0666"
+    # Xbox One controller
+    SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02d1", MODE="0666"
+    # Xbox One S controller
+    SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02ea", MODE="0666"
+    # Xbox Series X|S controller
+    SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="0b12", MODE="0666"
+  '';
+
+  # Enable Steam hardware support
+  hardware.steam-hardware.enable = true;
+
+  # Optional: Enable xboxdrv service (commented out by default)
+  # services.xboxdrv.enable = true;
 }
