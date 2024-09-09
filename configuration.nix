@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:  # Make sure lib is included here
+{ config, pkgs, lib, ... }:
 
 {
   imports = [
@@ -8,8 +8,8 @@
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.kernelParams = [ 
-    "amd_pstate=passive" 
+  boot.kernelParams = [
+    "amd_pstate=passive"
     "cpufreq.default_governor=powersave"
     "pcie_aspm.policy=powersupersave"
   ];
@@ -54,7 +54,7 @@
   environment.systemPackages = with pkgs; [
     kitty
     kate
-    auto-cpufreq
+    #auto-cpufreq
     vim
     htop
     btop
@@ -69,7 +69,7 @@
     steam
     xrdp
     remmina
-    blueman
+   #blueman
     discord
     ticktick
     git
@@ -84,13 +84,8 @@
     WLR_NO_HARDWARE_CURSORS = "1";
   };
 
-  hardware.opengl = {
-    enable = true;
-    driSupport = true;
-    driSupport32Bit = true;
-  };
-
   hardware.bluetooth.enable = true;
+  hardware.bluetooth.powerOnBoot = true;
 
   services.pipewire = {
     enable = true;
@@ -139,7 +134,7 @@
 
   # Optional: Enable thermald for better thermal management
   services.thermald.enable = true;
-  services.auto-cpufreq.enable = true;
+  #services.auto-cpufreq.enable = true;
 
   # New sections for Xbox controller support
   services.udev.extraRules = ''
@@ -160,4 +155,10 @@
 
   # Optional: Enable xboxdrv service (commented out by default)
   # services.xboxdrv.enable = true;
+
+  # Enable TRIM for SSDs
+  services.fstrim.enable = true;
+
+  # Enable Gamemode
+  programs.gamemode.enable = true;
 }
