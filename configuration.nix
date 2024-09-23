@@ -40,7 +40,6 @@
   # Enable the GNOME Desktop Environment
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.desktopManager.gnome.enable = true;
-
   # Configure keymap in X11
   services.xserver.xkb = {
     layout = "us";
@@ -67,11 +66,11 @@
   # System packages
   environment.systemPackages = with pkgs; [
     vim htop btop nmap git powertop lm_sensors fastfetch
-    kitty obsidian google-chrome vscodium
+    kitty obsidian google-chrome vscodium thunderbird 
     flatpak vulkan-tools mesa steam xrdp remmina
     xboxdrv linuxConsoleTools evtest
-    discord ticktick vlc 
-    gnome.gnome-tweaks
+    discord ticktick vlc krita
+    gnome.gnome-tweaks winbox onlyoffice-bin
   ];
 
   # Environment variables
@@ -121,12 +120,6 @@
       enable = true;
       enableUserService = true;
     };
-  # };
-  # XDG Desktop Portal
-  #xdg.portal = {
-   # enable = true;
-   # extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
-   # config.common.default = "*";
   };
 
   # System upgrade
