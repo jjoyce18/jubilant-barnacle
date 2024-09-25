@@ -1,18 +1,20 @@
 { config, pkgs, lib, ... }:
+
 {
   imports = [
     ./hardware-configuration.nix
-    "${fetchTarball {
-      url = "https://github.com/NixOS/nixos-hardware/archive/master.tar.gz";
-    }}/asus/zephyrus/ga402x/amdgpu"
+    (fetchTarball {
+      url = "https://github.com/NixOS/nixos-hardware/archive/d0cb432a9d28218df11cbd77d984a2a46caeb5ac.tar.gz";
+    } + "/asus/zephyrus/ga402x/amdgpu")
   ];
 
-  # Enable flakes and nix-command
+  # Nix configuration
   nix = {
     package = pkgs.nixFlakes;
-    extraOptions = ''
-      experimental-features = nix-command flakes
-    '';
+    settings = {
+      experimental-features = [ "nix-command" "flakes" ];
+      auto-optimise-store = true;
+    };
   };
 
   # Boot configuration
@@ -21,7 +23,7 @@
       systemd-boot.enable = true;
       efi.canTouchEfiVariables = true;
     };
-    kernelParams = lib.mkForce [
+    kernelParams = [
       "amd_pstate=passive"
       "cpufreq.default_governor=powersave"
       "pcie_aspm.policy=powersupersave"
@@ -32,45 +34,65 @@
   networking = {
     hostName = "nixos";
     networkmanager.enable = true;
+    firewall = {
+      enable = true;
+      # Uncomment the following lines if you need these ports open
+      # allowedTCPPorts = [ 80 443 ];
+      # allowedUDPPorts = [ 5353 ]; # For mDNS
+    };
   };
 
-  # Enable the X11 windowing system
-  services.xserver.enable = true;
+  # Enable mDNS
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    publish = {
+      enable = true;
+      addresses = true;
+      domain = true;
+      hinfo = true;
+      userServices = true;
+      workstation = true;
+    };
+  };
 
-  # Enable the GNOME Desktop Environment
-  services.xserver.displayManager.gdm.enable = true;
-  services.xserver.desktopManager.gnome.enable = true;
-  # Configure keymap in X11
-  services.xserver.xkb = {
-    layout = "us";
-    variant = "";
+  # X11 and GNOME
+  services.xserver = {
+    enable = true;
+    displayManager.gdm.enable = true;
+    desktopManager.gnome.enable = true;
+    xkb = {
+      layout = "us";
+      variant = "";
+    };
   };
 
   # Localization
   time.timeZone = "America/New_York";
-  i18n = {
-    defaultLocale = "en_US.UTF-8";
-    extraLocaleSettings = {
-      LC_ADDRESS = "en_US.UTF-8";
-      LC_IDENTIFICATION = "en_US.UTF-8";
-      LC_MEASUREMENT = "en_US.UTF-8";
-      LC_MONETARY = "en_US.UTF-8";
-      LC_NAME = "en_US.UTF-8";
-      LC_NUMERIC = "en_US.UTF-8";
-      LC_PAPER = "en_US.UTF-8";
-      LC_TELEPHONE = "en_US.UTF-8";
-      LC_TIME = "en_US.UTF-8";
-    };
-  };
+  i18n.defaultLocale = "en_US.UTF-8";
 
   # System packages
   environment.systemPackages = with pkgs; [
-    vim htop btop nmap git powertop lm_sensors fastfetch
-    kitty obsidian google-chrome vscodium thunderbird 
-    flatpak vulkan-tools mesa steam xrdp remmina
-    xboxdrv linuxConsoleTools evtest
-    discord ticktick vlc krita
+    # Development
+    vim neovim git vscodium
+
+    # System utilities
+    gtop htop btop nmap powertop lm_sensors fastfetch
+
+    # Applications
+    kitty obsidian google-chrome firefox
+    discord ticktick vlc krita element-desktop
     gnome.gnome-tweaks winbox onlyoffice-bin
+
+    # Gaming
+    steam gamemode
+
+    # Fonts
+    nerdfonts
+
+    # Misc
+    flatpak vulkan-tools mesa xrdp remmina
+    xboxdrv linuxConsoleTools evtest
   ];
 
   # Environment variables
@@ -86,29 +108,30 @@
       powerOnBoot = true;
     };
     pulseaudio.enable = false;
+    opengl = {
+      enable = true;
+      driSupport = true;
+      driSupport32Bit = true;
+    };
     steam-hardware.enable = true;
   };
 
   # Audio
-  services.pipewire = {
-    enable = true;
-    alsa = {
-      enable = true;
-      support32Bit = true;
-    };
-    pulse.enable = true;
-    jack.enable = true;
-  };
+  sound.enable = true;
   security.rtkit.enable = true;
-
-  # Firefox
-  programs.firefox = {
-    enable = true;
-    package = pkgs.firefox;
-  };
 
   # System services
   services = {
+    blueman.enable = true;
+    pipewire = {
+      enable = true;
+      alsa = {
+        enable = true;
+        support32Bit = true;
+      };
+      pulse.enable = true;
+      jack.enable = true;
+    };
     flatpak.enable = true;
     printing.enable = true;
     fstrim.enable = true;
@@ -122,24 +145,22 @@
     };
   };
 
-  # System upgrade
+  # Automatic system upgrades
   system.autoUpgrade = {
     enable = true;
     allowReboot = false;
+    # Uncomment the following line if you want daily upgrades
+    # dates = "daily";
   };
 
   # User configuration
   users.users.johnny = {
     isNormalUser = true;
     description = "Jonathan Joyce";
-    extraGroups = [ "networkmanager" "wheel" ];
-    packages = with pkgs; [ ];
+    extraGroups = [ "networkmanager" "wheel" "audio" "video" ];
   };
 
-  # System version
-  system.stateVersion = "24.05";
-
-  # ASUS-specific udev rule
+  # ASUS-specific udev rules
   services.udev = {
     extraHwdb = ''
       evdev:name:*:dmi:bvn*:bvr*:bd*:svnASUS:pn*:*
@@ -159,4 +180,10 @@
   nixpkgs.config.allowUnfree = true;
   fonts.fontconfig.enable = true;
   powerManagement.enable = true;
+
+  # This value determines the NixOS release from which the default
+  # settings for stateful data, like file locations and database versions
+  # on your system were taken. It's perfectly fine and recommended to leave
+  # this value at the release version of the first install of this system.
+  system.stateVersion = "24.05";
 }
