@@ -8,14 +8,32 @@
     } + "/asus/zephyrus/ga402x/amdgpu")
   ];
 
-  # Nix configuration
-  nix = {
-    package = pkgs.nixFlakes;
-    settings = {
-      experimental-features = [ "nix-command" "flakes" ];
-      auto-optimise-store = true;
+  # Manual DisplayLink configuration
+  nixpkgs.config.displaylink = {
+    enable = true;
+    driverFile = "/etc/nixos/hardware/displaylink-580.zip";
+    sha256 = "hR26phh9YMYsOWT4tIKj6/ZeItBygtw3cJ5ezOtGkMM=";
+  };
+
+  services.xserver = {
+    enable = true;
+    videoDrivers = [ "displaylink" "modesetting" ];
+    displayManager.gdm.enable = true;
+    desktopManager.gnome.enable = true;
+    xkb = {
+      layout = "us";
+      variant = "";
     };
   };
+
+  # Nix configuration (remove flakes temporarily if you are not using them)
+  # nix = {
+  #   package = pkgs.nixFlakes;
+  #   settings = {
+  #     experimental-features = [ "nix-command" "flakes" ];
+  #     auto-optimise-store = true;
+  #   };
+  # };
 
   # Boot configuration
   boot = {
@@ -30,18 +48,17 @@
     ];
   };
 
+ # Swap file configuration
+  swapDevices = [ { device = "/swapfile"; } ];
+
   # Networking
   networking = {
     hostName = "nixos";
     networkmanager.enable = true;
-    firewall = {
-      enable = true;
-      # Uncomment the following lines if you need these ports open
-      # allowedTCPPorts = [ 80 443 ];
-      # allowedUDPPorts = [ 5353 ]; # For mDNS
-    };
-  };
+    firewall.enable = true;
+    wireguard.enable = true;
 
+  };
   # Enable mDNS
   services.avahi = {
     enable = true;
@@ -56,41 +73,19 @@
     };
   };
 
-  # X11 and GNOME
-  services.xserver = {
-    enable = true;
-    displayManager.gdm.enable = true;
-    desktopManager.gnome.enable = true;
-    xkb = {
-      layout = "us";
-      variant = "";
-    };
-  };
-
   # Localization
   time.timeZone = "America/New_York";
   i18n.defaultLocale = "en_US.UTF-8";
 
   # System packages
   environment.systemPackages = with pkgs; [
-    # Development
-    vim neovim git vscodium
-
-    # System utilities
+    vim neovim git vscodium ripgrep wireguard-tools 
     gtop htop btop nmap powertop lm_sensors fastfetch
-
-    # Applications
     kitty obsidian google-chrome firefox
     discord ticktick vlc krita element-desktop
     gnome.gnome-tweaks winbox onlyoffice-bin
-
-    # Gaming
     steam gamemode
-
-    # Fonts
     nerdfonts
-
-    # Misc
     flatpak vulkan-tools mesa xrdp remmina
     xboxdrv linuxConsoleTools evtest
   ];
@@ -137,7 +132,6 @@
     fstrim.enable = true;
     thermald.enable = true;
     power-profiles-daemon.enable = true;
-    # ASUS-specific services
     supergfxd.enable = true;
     asusd = {
       enable = true;
@@ -149,8 +143,6 @@
   system.autoUpgrade = {
     enable = true;
     allowReboot = false;
-    # Uncomment the following line if you want daily upgrades
-    # dates = "daily";
   };
 
   # User configuration
@@ -181,9 +173,5 @@
   fonts.fontconfig.enable = true;
   powerManagement.enable = true;
 
-  # This value determines the NixOS release from which the default
-  # settings for stateful data, like file locations and database versions
-  # on your system were taken. It's perfectly fine and recommended to leave
-  # this value at the release version of the first install of this system.
   system.stateVersion = "24.05";
 }
