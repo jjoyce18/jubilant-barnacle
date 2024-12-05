@@ -8,58 +8,61 @@
     } + "/asus/zephyrus/ga402x/amdgpu")
   ];
 
-  # Manual DisplayLink configuration
-  nixpkgs.config.displaylink = {
-    enable = true;
-    driverFile = "/etc/nixos/hardware/displaylink-580.zip";
-    sha256 = "hR26phh9YMYsOWT4tIKj6/ZeItBygtw3cJ5ezOtGkMM=";
-  };
-
+  # Display server and desktop environment configuration
   services.xserver = {
     enable = true;
-    videoDrivers = [ "displaylink" "modesetting" ];
-    displayManager.gdm.enable = true;
+    displayManager = {
+      gdm = {
+        enable = true;
+        wayland = true;  # Enable Wayland
+      };
+    };
     desktopManager.gnome.enable = true;
+
+    videoDrivers = [ "amdgpu" "displaylink" "modesetting" ];
     xkb = {
       layout = "us";
       variant = "";
     };
   };
 
-  # Nix configuration (remove flakes temporarily if you are not using them)
-  # nix = {
-  #   package = pkgs.nixFlakes;
-  #   settings = {
-  #     experimental-features = [ "nix-command" "flakes" ];
-  #     auto-optimise-store = true;
-  #   };
-  # };
+  # Enable GNOME Remote Desktop
+  services.gnome = {
+    gnome-remote-desktop.enable = true;
+  };
 
-  # Boot configuration
+  # Bootloader configuration
   boot = {
     loader = {
       systemd-boot.enable = true;
       efi.canTouchEfiVariables = true;
     };
     kernelParams = [
-      "amd_pstate=passive"
+      "amd_pstate=active"
       "cpufreq.default_governor=powersave"
       "pcie_aspm.policy=powersupersave"
+      "amdgpu.runpm=1"
+      "amdgpu.ppfeaturemask=0xfffbffff"  # More conservative feature mask
     ];
   };
 
- # Swap file configuration
-  swapDevices = [ { device = "/swapfile"; } ];
-
-  # Networking
-  networking = {
-    hostName = "nixos";
-    networkmanager.enable = true;
-    firewall.enable = true;
-    wireguard.enable = true;
-
+  # Swap configuration with Zram
+  zramSwap = {
+    enable = true;
+    memoryPercent = 25;
   };
-  # Enable mDNS
+
+  # Networking and firewall
+  networking = {
+    hostName = "jjnixos";
+    networkmanager.enable = true;
+    firewall = {
+      enable = true;
+    };
+    wireguard.enable = true;
+  };
+
+  # Enable Avahi for mDNS
   services.avahi = {
     enable = true;
     nssmdns4 = true;
@@ -79,15 +82,21 @@
 
   # System packages
   environment.systemPackages = with pkgs; [
-    vim neovim git vscodium ripgrep wireguard-tools 
+    vim neovim git vscodium ripgrep wireguard-tools
     gtop htop btop nmap powertop lm_sensors fastfetch
     kitty obsidian google-chrome firefox
     discord ticktick vlc krita element-desktop
     gnome.gnome-tweaks winbox onlyoffice-bin
-    steam gamemode
-    nerdfonts
-    flatpak vulkan-tools mesa xrdp remmina
+    steam gamemode barrier
+    nerdfonts rustup cargo rust-analyzer
+    flatpak vulkan-tools mesa remmina
     xboxdrv linuxConsoleTools evtest
+    s-tui  # System monitoring tool
+    nvtopPackages.full  # GPU monitoring
+    
+    # Gnome Remote Desktop and related packages
+    gnome.gnome-remote-desktop
+    gnome.gnome-control-center
   ];
 
   # Environment variables
@@ -96,7 +105,7 @@
     WLR_NO_HARDWARE_CURSORS = "1";
   };
 
-  # Hardware configuration
+  # Hardware and services
   hardware = {
     bluetooth = {
       enable = true;
@@ -111,11 +120,13 @@
     steam-hardware.enable = true;
   };
 
-  # Audio
+  # Audio and pipewire configuration
   sound.enable = true;
-  security.rtkit.enable = true;
+  security = {
+    rtkit.enable = true;
+    polkit.enable = true;
+  };
 
-  # System services
   services = {
     blueman.enable = true;
     pipewire = {
@@ -139,7 +150,7 @@
     };
   };
 
-  # Automatic system upgrades
+  # Automatic system upgrades (minimal configuration)
   system.autoUpgrade = {
     enable = true;
     allowReboot = false;
@@ -152,14 +163,13 @@
     extraGroups = [ "networkmanager" "wheel" "audio" "video" ];
   };
 
-  # ASUS-specific udev rules
+  # Udev rules
   services.udev = {
     extraHwdb = ''
       evdev:name:*:dmi:bvn*:bvr*:bd*:svnASUS:pn*:*
       KEYBOARD_KEY_ff31007c=f20
     '';
     extraRules = ''
-      # Xbox controller rules
       SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="028e", MODE="0666"
       SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="0719", MODE="0666"
       SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="02d1", MODE="0666"
@@ -168,7 +178,7 @@
     '';
   };
 
-  # Misc
+  # Miscellaneous settings
   nixpkgs.config.allowUnfree = true;
   fonts.fontconfig.enable = true;
   powerManagement.enable = true;
